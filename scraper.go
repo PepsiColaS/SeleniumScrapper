@@ -22,7 +22,7 @@ var products []Product
 // https://www.okeydostavka.ru/msk/ovoshchi-i-frukty/ovoshchi
 // https://www.okeydostavka.ru/msk/miaso-ptitsa-kolbasy/miaso-20
 
-const siteURL string = "https://www.okeydostavka.ru/msk/miaso-ptitsa-kolbasy/ptitsa-20"
+const siteURL string = "https://www.okeydostavka.ru/msk/ovoshchi-i-frukty/ovoshchi"
 const addres string = "Москва, Олимпийский проспект, 18/1"
 
 func main() {
