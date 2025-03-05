@@ -17,7 +17,13 @@ type Product struct {
 
 var products []Product
 
-var siteURL string = "https://www.okeydostavka.ru/msk/ovoshchi-i-frukty/ovoshchi"
+// Урлы для проверки
+// https://www.okeydostavka.ru/msk/miaso-ptitsa-kolbasy/ptitsa-20
+// https://www.okeydostavka.ru/msk/ovoshchi-i-frukty/ovoshchi
+// https://www.okeydostavka.ru/msk/miaso-ptitsa-kolbasy/miaso-20
+
+const siteURL string = "https://www.okeydostavka.ru/msk/miaso-ptitsa-kolbasy/ptitsa-20"
+const addres string = "Москва, Олимпийский проспект, 18/1"
 
 func main() {
 	startTime := time.Now()
@@ -50,20 +56,32 @@ func main() {
 	if err != nil {
 		log.Fatal("Error:", err)
 	}
+	waitForElement(driver, "availableReceiptTimeslot")
+	selectPlace, _ := driver.FindElement(selenium.ByID, "availableReceiptTimeslot")
+	selectPlace.Click()
+
+	waitForElement(driver, ".dijitReset .dijitInputInner")
+	inputPlace, _ := driver.FindElement(selenium.ByCSSSelector, ".dijitReset .dijitInputInner")
+	err = inputPlace.SendKeys(addres)
+	if err != nil {
+		log.Fatal("Error:", err)
+
+	}
+
+	waitForElement(driver, "addressSelectionButton")
+	saveButton, _ := driver.FindElement(selenium.ByID, "addressSelectionButton")
+	saveButton.Click()
 
 	for {
-		time.Sleep(1 * time.Second)
-
-		productElements, err := driver.FindElements(selenium.ByCSSSelector, ".product")
-		if err != nil {
-			log.Fatal("Error:", err)
-		}
+		waitForElement(driver, ".product")
+		productElements, _ := driver.FindElements(selenium.ByCSSSelector, ".product")
 
 		for _, productElement := range productElements {
 			nameElement, err := productElement.FindElement(selenium.ByCSSSelector, ".product-info .product-name a")
 			if err != nil {
 				log.Fatal("Error:", err)
 			}
+
 			priceElement, err := productElement.FindElement(selenium.ByCSSSelector, ".shopper-actions .price_and_cart .product-price__container .product-price .price")
 			if err != nil {
 				log.Fatal("Error:", err)
@@ -89,22 +107,50 @@ func main() {
 
 		element, err := driver.FindElement(selenium.ByCSSSelector, ".paging_controls .right_arrow ")
 		if err != nil {
-			log.Fatal("Error:", err)
-		}
-
-		isVisible, _ := element.IsDisplayed()
-		if !isVisible {
 			break
 		}
-		element.Click()
-	}
+		IsDisplayed, _ := element.IsDisplayed()
+		if IsDisplayed {
+			element.Click()
+		} else {
+			break
+		}
 
+	}
 	createFile()
 	fmt.Println(time.Since(startTime), " - work time")
 }
 
+func waitForElement(driver selenium.WebDriver, selector string) {
+	timeout := time.After(5 * time.Second)
+	tick := time.Tick(500 * time.Millisecond)
+
+	var element selenium.WebElement
+	var err error
+	for {
+		select {
+		case <-timeout:
+			log.Fatal("Timeout waiting for element to be visible")
+			return
+		case <-tick:
+			if rune(selector[0]) == '.' {
+				element, err = driver.FindElement(selenium.ByCSSSelector, selector)
+			} else {
+				element, err = driver.FindElement(selenium.ByID, selector)
+			}
+			if err == nil {
+				isDisplayed, err := element.IsDisplayed()
+				if err == nil && isDisplayed {
+					time.Sleep(1 * time.Second)
+					return
+				}
+			}
+		}
+	}
+}
+
 func createFile() {
-	file, err := os.Create("products.csv")
+	file, err := os.OpenFile("products.csv", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatal("Error:", err)
 	}
